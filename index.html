@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#f0f7f4">
+    <title>舒尔特方格 - 注意力训练</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- 首页/选择页 -->
+        <div id="home-page" class="page active">
+            <header class="app-header">
+                <h1 class="app-title">舒尔特方格</h1>
+                <p class="app-subtitle">注意力训练工具</p>
+            </header>
+
+            <!-- 儿童选择区 -->
+            <section id="child-select" class="child-select-section">
+                <h2 class="section-title">选择训练者</h2>
+                <div id="child-list" class="child-list"></div>
+                <button id="btn-add-child" class="btn btn-secondary btn-add-child">+ 添加儿童</button>
+            </section>
+
+            <!-- 模式选择 -->
+            <section id="mode-select" class="mode-section hidden">
+                <h2 class="section-title">选择训练模式</h2>
+                <div class="mode-grid">
+                    <button class="btn btn-mode" data-mode="classic">
+                        <span class="mode-icon">🎯</span>
+                        <span class="mode-name">经典模式</span>
+                        <span class="mode-desc">基础注意力训练</span>
+                    </button>
+                    <button class="btn btn-mode" data-mode="interference">
+                        <span class="mode-icon">🌪️</span>
+                        <span class="mode-name">干扰强化</span>
+                        <span class="mode-desc">抗干扰能力训练</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- 底部导航 -->
+            <nav class="bottom-nav">
+                <button class="nav-btn active" data-page="home">
+                    <span class="nav-icon">🏠</span>
+                    <span>首页</span>
+                </button>
+                <button class="nav-btn" data-page="data">
+                    <span class="nav-icon">📊</span>
+                    <span>数据</span>
+                </button>
+                <button class="nav-btn" data-page="achievements">
+                    <span class="nav-icon">🏆</span>
+                    <span>勋章</span>
+                </button>
+                <button class="nav-btn" data-page="settings">
+                    <span class="nav-icon">⚙️</span>
+                    <span>设置</span>
+                </button>
+            </nav>
+        </div>
+
+        <!-- 难度选择页 -->
+        <div id="difficulty-page" class="page">
+            <header class="page-header">
+                <button class="btn btn-back" id="btn-back-to-mode">← 返回</button>
+                <h1>选择难度</h1>
+            </header>
+            <div id="difficulty-grid" class="difficulty-grid"></div>
+        </div>
+
+        <!-- 干扰级别选择页（仅干扰模式显示） -->
+        <div id="interference-level-page" class="page">
+            <header class="page-header">
+                <button class="btn btn-back" id="btn-back-to-difficulty">← 返回</button>
+                <h1>选择干扰强度</h1>
+                <p class="page-subtitle">在干扰环境中训练注意力</p>
+            </header>
+            <div id="interference-level-grid" class="difficulty-grid">
+                <button class="difficulty-btn interference-level-btn" data-level="1">
+                    <span class="difficulty-size">🌤️ 初级</span>
+                    <span class="difficulty-label">轻微视觉干扰</span>
+                    <span class="difficulty-detail">背景颜色缓慢变化</span>
+                </button>
+                <button class="difficulty-btn interference-level-btn" data-level="2">
+                    <span class="difficulty-size">🌧️ 中级</span>
+                    <span class="difficulty-label">视觉 + 听觉干扰</span>
+                    <span class="difficulty-detail">背景变化 + 环境白噪音</span>
+                </button>
+                <button class="difficulty-btn interference-level-btn" data-level="3">
+                    <span class="difficulty-size">⛈️ 高级</span>
+                    <span class="difficulty-label">强干扰挑战</span>
+                    <span class="difficulty-detail">快速变化 + 噪音 + 抖动</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 训练页面 -->
+        <div id="training-page" class="page">
+            <!-- 倒计时覆盖层 -->
+            <div id="countdown-overlay" class="countdown-overlay hidden">
+                <div class="countdown-number" id="countdown-number">3</div>
+            </div>
+
+            <!-- 训练头部信息 -->
+            <header class="training-header">
+                <div class="training-info">
+                    <span id="training-mode-label" class="training-label">经典模式</span>
+                    <span id="training-difficulty-label" class="training-label">3×3</span>
+                </div>
+                <div class="timer-display">
+                    <span class="timer-value" id="timer-display">00:00.0</span>
+                </div>
+                <button class="btn btn-pause" id="btn-pause">⏸️</button>
+            </header>
+
+            <!-- 舒尔特方格区域 -->
+            <main class="training-main">
+                <div id="schulte-grid" class="schulte-grid"></div>
+            </main>
+
+            <!-- 当前目标提示（底部） -->
+            <footer class="training-footer">
+                <span class="target-hint">当前请点击数字 <strong id="current-target">1</strong></span>
+            </footer>
+        </div>
+
+        <!-- 结果页面 -->
+        <div id="result-page" class="page">
+            <header class="page-header">
+                <h1>训练完成！</h1>
+            </header>
+            <div class="result-content">
+                <!-- 庆祝动画容器 -->
+                <div id="celebration" class="celebration hidden"></div>
+
+                <div class="result-stats">
+                    <div class="stat-card stat-primary">
+                        <span class="stat-label">本次用时</span>
+                        <span class="stat-value" id="result-time">00:00.0</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">错误次数</span>
+                        <span class="stat-value" id="result-errors">0</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">正确率</span>
+                        <span class="stat-value" id="result-accuracy">100%</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">平均每秒</span>
+                        <span class="stat-value" id="result-speed">0.0</span>
+                    </div>
+                </div>
+
+                <!-- 对比信息 -->
+                <div class="result-comparison">
+                    <div class="comparison-item">
+                        <span class="comparison-label">历史最佳</span>
+                        <span class="comparison-value" id="result-best">--</span>
+                    </div>
+                    <div class="comparison-item">
+                        <span class="comparison-label">平均成绩</span>
+                        <span class="comparison-value" id="result-average">--</span>
+                    </div>
+                </div>
+
+                <!-- 新纪录提示 -->
+                <div id="new-record-banner" class="new-record-banner hidden">
+                    🎉 恭喜！刷新最佳记录！
+                </div>
+
+                <!-- 勋章获得提示 -->
+                <div id="badge-earned" class="badge-earned hidden"></div>
+
+                <div class="result-actions">
+                    <button class="btn btn-primary btn-large" id="btn-play-again">再来一局</button>
+                    <button class="btn btn-secondary" id="btn-back-to-home">返回主页</button>
+                    <button class="btn btn-secondary" id="btn-back-to-difficulty">选择难度</button>
+                    <button class="btn btn-secondary" id="btn-view-history">查看记录</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 数据中心页面 -->
+        <div id="data-page" class="page">
+            <header class="page-header">
+                <h1>数据中心</h1>
+            </header>
+            <div class="data-content">
+                <!-- 数据概览卡片 -->
+                <div class="data-overview">
+                    <div class="overview-card">
+                        <span class="overview-label">今日训练</span>
+                        <span class="overview-value" id="today-count">0</span>
+                        <span class="overview-unit">次</span>
+                    </div>
+                    <div class="overview-card">
+                        <span class="overview-label">本周训练</span>
+                        <span class="overview-value" id="week-count">0</span>
+                        <span class="overview-unit">次</span>
+                    </div>
+                    <div class="overview-card">
+                        <span class="overview-label">累计训练</span>
+                        <span class="overview-value" id="total-count">0</span>
+                        <span class="overview-unit">次</span>
+                    </div>
+                    <div class="overview-card">
+                        <span class="overview-label">连续打卡</span>
+                        <span class="overview-value" id="streak-days">0</span>
+                        <span class="overview-unit">天</span>
+                    </div>
+                </div>
+
+                <!-- 最佳成绩榜 -->
+                <section class="data-section">
+                    <h2 class="section-title">最佳成绩榜</h2>
+                    <div id="best-scores" class="best-scores-list"></div>
+                </section>
+
+                <!-- 训练记录列表 -->
+                <section class="data-section">
+                    <h2 class="section-title">最近训练记录</h2>
+                    <div id="training-history" class="history-list"></div>
+                </section>
+            </div>
+
+            <!-- 底部导航（数据页复用） -->
+            <nav class="bottom-nav">
+                <button class="nav-btn" data-page="home">
+                    <span class="nav-icon">🏠</span>
+                    <span>首页</span>
+                </button>
+                <button class="nav-btn active" data-page="data">
+                    <span class="nav-icon">📊</span>
+                    <span>数据</span>
+                </button>
+                <button class="nav-btn" data-page="achievements">
+                    <span class="nav-icon">🏆</span>
+                    <span>勋章</span>
+                </button>
+                <button class="nav-btn" data-page="settings">
+                    <span class="nav-icon">⚙️</span>
+                    <span>设置</span>
+                </button>
+            </nav>
+        </div>
+
+        <!-- 勋章墙页面 -->
+        <div id="achievements-page" class="page">
+            <header class="page-header">
+                <h1>勋章墙</h1>
+            </header>
+            <div class="achievements-content">
+                <!-- 打卡日历 -->
+                <section class="data-section">
+                    <h2 class="section-title">打卡日历</h2>
+                    <div id="checkin-calendar" class="checkin-calendar"></div>
+                </section>
+
+                <!-- 勋章展示 -->
+                <section class="data-section">
+                    <h2 class="section-title">我的勋章</h2>
+                    <div id="badge-list" class="badge-list"></div>
+                </section>
+            </div>
+
+            <nav class="bottom-nav">
+                <button class="nav-btn" data-page="home">
+                    <span class="nav-icon">🏠</span>
+                    <span>首页</span>
+                </button>
+                <button class="nav-btn" data-page="data">
+                    <span class="nav-icon">📊</span>
+                    <span>数据</span>
+                </button>
+                <button class="nav-btn active" data-page="achievements">
+                    <span class="nav-icon">🏆</span>
+                    <span>勋章</span>
+                </button>
+                <button class="nav-btn" data-page="settings">
+                    <span class="nav-icon">⚙️</span>
+                    <span>设置</span>
+                </button>
+            </nav>
+        </div>
+
+        <!-- 设置页面 -->
+        <div id="settings-page" class="page">
+            <header class="page-header">
+                <h1>设置</h1>
+            </header>
+            <div class="settings-content">
+                <section class="settings-section">
+                    <h2 class="section-title">通用设置</h2>
+                    <div class="setting-item">
+                        <span class="setting-label">音效开关</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="setting-sound" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <span class="setting-label">护眼模式</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="setting-eye-care">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </section>
+
+                <section class="settings-section">
+                    <h2 class="section-title">家长设置</h2>
+                    <button class="btn btn-secondary btn-block" id="btn-parent-settings">
+                        🔒 进入家长管理后台
+                    </button>
+                </section>
+
+                <section class="settings-section">
+                    <h2 class="section-title">关于</h2>
+                    <p class="about-text">舒尔特方格注意力训练工具 V1.0</p>
+                    <p class="about-text disclaimer">本工具仅作日常训练辅助，不替代专业医疗干预。</p>
+                </section>
+            </div>
+
+            <nav class="bottom-nav">
+                <button class="nav-btn" data-page="home">
+                    <span class="nav-icon">🏠</span>
+                    <span>首页</span>
+                </button>
+                <button class="nav-btn" data-page="data">
+                    <span class="nav-icon">📊</span>
+                    <span>数据</span>
+                </button>
+                <button class="nav-btn" data-page="achievements">
+                    <span class="nav-icon">🏆</span>
+                    <span>勋章</span>
+                </button>
+                <button class="nav-btn active" data-page="settings">
+                    <span class="nav-icon">⚙️</span>
+                    <span>设置</span>
+                </button>
+            </nav>
+        </div>
+
+        <!-- 家长管理后台弹窗 -->
+        <div id="parent-modal" class="modal hidden">
+            <div class="modal-content">
+                <header class="modal-header">
+                    <h2>家长管理后台</h2>
+                    <button class="btn btn-close" id="btn-close-parent">&times;</button>
+                </header>
+                <!-- 密码验证 -->
+                <div id="parent-password-section" class="password-section">
+                    <p>请输入4位数字密码</p>
+                    <div class="password-input">
+                        <input type="password" maxlength="1" class="pwd-digit" id="pwd-1" inputmode="numeric" pattern="[0-9]">
+                        <input type="password" maxlength="1" class="pwd-digit" id="pwd-2" inputmode="numeric" pattern="[0-9]">
+                        <input type="password" maxlength="1" class="pwd-digit" id="pwd-3" inputmode="numeric" pattern="[0-9]">
+                        <input type="password" maxlength="1" class="pwd-digit" id="pwd-4" inputmode="numeric" pattern="[0-9]">
+                    </div>
+                    <p class="password-hint">默认密码：1234</p>
+                    <button class="btn btn-primary" id="btn-verify-password">确认</button>
+                </div>
+                <!-- 家长设置内容（验证后显示） -->
+                <div id="parent-settings-section" class="parent-settings hidden">
+                    <!-- 儿童档案管理 -->
+                    <section class="parent-section">
+                        <h3>儿童档案管理</h3>
+                        <div id="parent-child-list" class="parent-child-list"></div>
+                        <button class="btn btn-secondary btn-sm" id="btn-parent-add-child">+ 添加儿童</button>
+                    </section>
+
+                    <!-- 训练规则设置 -->
+                    <section class="parent-section">
+                        <h3>训练规则</h3>
+                        <div class="setting-item">
+                            <span class="setting-label">单日最长训练时长</span>
+                            <select id="setting-daily-limit" class="setting-select">
+                                <option value="10">10分钟</option>
+                                <option value="15" selected>15分钟</option>
+                                <option value="20">20分钟</option>
+                                <option value="30">30分钟</option>
+                            </select>
+                        </div>
+                        <div class="setting-item">
+                            <span class="setting-label">难度解锁方式</span>
+                            <select id="setting-unlock-mode" class="setting-select">
+                                <option value="auto" selected>自动解锁</option>
+                                <option value="manual">手动解锁</option>
+                            </select>
+                        </div>
+                    </section>
+
+                    <!-- 休息提醒设置 -->
+                    <section class="parent-section">
+                        <h3>护眼与休息</h3>
+                        <div class="setting-item">
+                            <span class="setting-label">定时休息提醒</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="setting-rest-reminder" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <span class="setting-label">每训练多久提醒</span>
+                            <select id="setting-rest-interval" class="setting-select">
+                                <option value="10" selected>10分钟</option>
+                                <option value="15">15分钟</option>
+                                <option value="20">20分钟</option>
+                            </select>
+                        </div>
+                    </section>
+
+                    <button class="btn btn-primary btn-block" id="btn-save-parent-settings">保存设置</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 添加/编辑儿童弹窗 -->
+        <div id="child-modal" class="modal hidden">
+            <div class="modal-content modal-sm">
+                <header class="modal-header">
+                    <h2 id="child-modal-title">添加儿童</h2>
+                    <button class="btn btn-close" id="btn-close-child-modal">&times;</button>
+                </header>
+                <form id="child-form" class="child-form">
+                    <div class="form-group">
+                        <label for="child-name">姓名</label>
+                        <input type="text" id="child-name" placeholder="请输入姓名" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="child-age">年龄</label>
+                        <input type="number" id="child-age" min="7" max="12" placeholder="7-12" required>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary btn-block">保存</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 暂停确认弹窗 -->
+        <div id="pause-modal" class="modal hidden">
+            <div class="modal-content modal-sm">
+                <header class="modal-header">
+                    <h2>训练已暂停</h2>
+                </header>
+                <div class="pause-content">
+                    <p>需要家长验证才能继续</p>
+                    <div class="password-input">
+                        <input type="password" maxlength="1" class="pwd-digit" id="pause-pwd-1" inputmode="numeric" pattern="[0-9]">
+                        <input type="password" maxlength="1" class="pwd-digit" id="pause-pwd-2" inputmode="numeric" pattern="[0-9]">
+                        <input type="password" maxlength="1" class="pwd-digit" id="pause-pwd-3" inputmode="numeric" pattern="[0-9]">
+                        <input type="password" maxlength="1" class="pwd-digit" id="pause-pwd-4" inputmode="numeric" pattern="[0-9]">
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn btn-primary" id="btn-resume-training">继续训练</button>
+                        <button class="btn btn-secondary" id="btn-end-training">结束训练</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 休息提醒弹窗 -->
+        <div id="rest-modal" class="modal hidden">
+            <div class="modal-content modal-sm">
+                <header class="modal-header">
+                    <h2>休息时间到 🌿</h2>
+                </header>
+                <div class="rest-content">
+                    <p>你已经训练了一段时间，让眼睛休息一下吧！</p>
+                    <p class="rest-tip">请远眺20秒，放松眼睛~</p>
+                    <div class="rest-timer" id="rest-timer">20</div>
+                    <button class="btn btn-primary btn-block" id="btn-dismiss-rest">我知道了</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/storage.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
