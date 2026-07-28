@@ -27,6 +27,7 @@ const App = {
         restReminderShown: false,    // 本次训练是否已显示过休息提醒
         // 干扰相关状态
         interferenceTimers: [],      // 干扰动画定时器数组
+        noiseAudioContext: null,     // 白噪音 AudioContext（复用）
         noiseAudioNode: null,        // 白噪音音频节点
         noiseGainNode: null,         // 音量控制节点
     },
@@ -760,25 +761,30 @@ const App = {
             cell.classList.remove('flickering');
         });
 
-        // 停止白噪音
+        // 立即停止白噪音（不使用延迟，防止页面切换时 setTimeout 被挂起）
         if (this.state.noiseGainNode) {
             try {
-                const audioContext = this.state.noiseGainNode.context;
-                this.state.noiseGainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.3);
-                setTimeout(() => {
-                    if (this.state.noiseAudioNode) {
-                        try { this.state.noiseAudioNode.stop(); } catch(e) {}
-                        try { this.state.noiseAudioNode.disconnect(); } catch(e) {}
-                        this.state.noiseAudioNode = null;
-                    }
-                    if (this.state.noiseGainNode) {
-                        try { this.state.noiseGainNode.disconnect(); } catch(e) {}
-                        this.state.noiseGainNode = null;
-                    }
-                }, 500);
-            } catch(e) {
-                console.warn('停止白噪音失败:', e);
-            }
+                // 立即将音量设为0
+                this.state.noiseGainNode.gain.cancelScheduledValues(0);
+                this.state.noiseGainNode.gain.value = 0;
+            } catch(e) {}
+        }
+
+        if (this.state.noiseAudioNode) {
+            try { this.state.noiseAudioNode.stop(); } catch(e) {}
+            try { this.state.noiseAudioNode.disconnect(); } catch(e) {}
+            this.state.noiseAudioNode = null;
+        }
+
+        if (this.state.noiseGainNode) {
+            try { this.state.noiseGainNode.disconnect(); } catch(e) {}
+            this.state.noiseGainNode = null;
+        }
+
+        // 关闭 AudioContext 释放资源
+        if (this.state.noiseAudioContext) {
+            try { this.state.noiseAudioContext.close(); } catch(e) {}
+            this.state.noiseAudioContext = null;
         }
     },
 
@@ -849,7 +855,11 @@ const App = {
      */
     startWhiteNoise(volume) {
         try {
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            // 复用或创建 AudioContext（保存引用以便后续关闭）
+            if (!this.state.noiseAudioContext || this.state.noiseAudioContext.state === 'closed') {
+                this.state.noiseAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            const audioContext = this.state.noiseAudioContext;
             const bufferSize = 2 * audioContext.sampleRate;
             const noiseBuffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
             const output = noiseBuffer.getChannelData(0);
